@@ -1166,6 +1166,18 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "github-sync-test",
+			"id": "444735-8435e2f6-842e-46c1-88f5-9309d95f15fc",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
 		}
 	],
 	"event": [

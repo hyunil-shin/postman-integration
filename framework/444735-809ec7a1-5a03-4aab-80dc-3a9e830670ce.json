@@ -1,0 +1,706 @@
+{
+	"info": {
+		"_postman_id": "444735-809ec7a1-5a03-4aab-80dc-3a9e830670ce",
+		"name": "Framework API",
+		"description": "# NHN Cloud Framework API 테스트 컬렉션\n\n이 컬렉션은 NHN Cloud Framework API의 프로젝트 관리 기능을 테스트하기 위한 종합적인 테스트 케이스를 포함합니다.\n\n## 📋 포함된 API\n- **프로젝트 추가**: 조직에 새로운 프로젝트를 생성하는 API\n\n## 🔐 사전 요구사항\n- Bearer 토큰 인증 필요\n- `Organization.Project.Create` 권한 필요\n- 유효한 16자리 조직 ID 필요\n\n## ⚙️ 환경 변수 설정\n테스트 실행 전에 다음 환경 변수를 설정해주세요:\n\n| 변수명 | 설명 | 예시 |\n|--------|------|------|\n| `baseUrl` | API 기본 URL | `https://core.api.nhncloudservice.com` |\n| `org-id` | 조직 ID (16자) | `1234567890123456` |\n| `token` | Bearer 인증 토큰 | `your-bearer-token-here` |\n\n## 🧪 테스트 케이스\n1. **정상 케이스**: 유효한 데이터로 프로젝트 생성\n2. **빈 이름 검증**: 프로젝트명이 빈 값일 때 오류 처리\n3. **긴 이름 검증**: 40자 초과 프로젝트명 오류 처리\n4. **필수 필드 누락**: projectName 필드 누락 시 오류 처리\n5. **인증 오류**: 잘못된 토큰으로 권한 오류 처리\n\n## 📖 API 문서 참조\n[NHN Cloud Framework API 공식 문서](https://docs.nhncloud.com/ko/nhncloud/ko/public-api/framework-api/#프로젝트-추가)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "프로젝트 관리",
+			"item": [
+				{
+					"name": "프로젝트 추가 - 정상 케이스",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 응답 상태 코드 확인",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// 응답 JSON 구조 확인",
+									"pm.test(\"Response has correct structure\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson).to.have.property('header');",
+									"    pm.expect(responseJson.header).to.have.property('isSuccessful');",
+									"    pm.expect(responseJson.header).to.have.property('resultCode');",
+									"    pm.expect(responseJson.header).to.have.property('resultMessage');",
+									"});",
+									"",
+									"// 성공 응답 확인",
+									"pm.test(\"API call is successful\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.header.isSuccessful).to.be.true;",
+									"    pm.expect(responseJson.header.resultCode).to.equal(0);",
+									"});",
+									"",
+									"// 프로젝트 정보 확인",
+									"pm.test(\"Project information is returned\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    if (responseJson.header.isSuccessful) {",
+									"        pm.expect(responseJson).to.have.property('project');",
+									"        pm.expect(responseJson.project).to.have.property('projectId');",
+									"        pm.expect(responseJson.project).to.have.property('projectName');",
+									"        pm.expect(responseJson.project).to.have.property('orgId');",
+									"        pm.expect(responseJson.project).to.have.property('projectStatusCode');",
+									"        pm.expect(responseJson.project).to.have.property('regDateTime');",
+									"        pm.expect(responseJson.project).to.have.property('ownerId');",
+									"        ",
+									"        // 프로젝트 ID는 8자여야 함",
+									"        pm.expect(responseJson.project.projectId).to.have.lengthOf(8);",
+									"        ",
+									"        // 프로젝트 상태는 STABLE이어야 함",
+									"        pm.expect(responseJson.project.projectStatusCode).to.equal('STABLE');",
+									"        ",
+									"        // 생성된 프로젝트 ID를 환경 변수에 저장",
+									"        pm.environment.set('created_project_id', responseJson.project.projectId);",
+									"        pm.environment.set('project_owner_id', responseJson.project.ownerId);",
+									"    }",
+									"});",
+									"",
+									"// 응답 시간 확인",
+									"pm.test(\"Response time is less than 3000ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(3000);",
+									"});",
+									"",
+									"// Content-Type 확인",
+									"pm.test(\"Content-Type is application/json\", function () {",
+									"    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+									"});",
+									"",
+									"// 응답 크기 확인",
+									"pm.test(\"Response size is reasonable\", function () {",
+									"    pm.expect(pm.response.responseSize).to.be.below(5000);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// 요청 전 검증",
+									"console.log('=== 프로젝트 추가 API 테스트 시작 ===');",
+									"",
+									"// 필수 환경 변수 확인",
+									"const baseUrl = pm.environment.get('baseUrl');",
+									"const orgId = pm.environment.get('org-id');",
+									"const token = pm.environment.get('token');",
+									"",
+									"if (!baseUrl) {",
+									"    throw new Error('baseUrl 환경 변수가 설정되지 않았습니다.');",
+									"}",
+									"if (!orgId) {",
+									"    throw new Error('org-id 환경 변수가 설정되지 않았습니다.');",
+									"}",
+									"if (!token) {",
+									"    throw new Error('token 환경 변수가 설정되지 않았습니다.');",
+									"}",
+									"",
+									"// 조직 ID 길이 검증",
+									"if (orgId.length !== 16) {",
+									"    console.warn('경고: 조직 ID는 16자여야 합니다. 현재 길이:', orgId.length);",
+									"}",
+									"",
+									"// 요청 시작 시간 기록",
+									"pm.environment.set('requestStartTime', new Date().toISOString());",
+									"",
+									"console.log('환경 변수 확인 완료:', {",
+									"    baseUrl: baseUrl,",
+									"    orgId: orgId.substring(0, 4) + '****',",
+									"    tokenSet: !!token",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"id": "444735-73e1c555-b43c-4a53-b19f-f368eeafd54c",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-nhn-authorization",
+								"type": "text",
+								"value": "Bearer {{token}}",
+								"description": "사용자가 발급받은 Bearer 타입 토큰"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"projectName\": \"Test Project {{$randomInt}}\",\n  \"description\": \"테스트용 프로젝트입니다. 생성일시: {{$isoTimestamp}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/organizations/{{org-id}}/projects",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"organizations",
+								"{{org-id}}",
+								"projects"
+							]
+						},
+						"description": "## 프로젝트 추가 - 정상 케이스\n\n조직에 새로운 프로젝트를 추가하는 API의 정상적인 동작을 테스트합니다.\n\n### 필요 권한\n- `Organization.Project.Create`\n\n### 요청 파라미터\n- **org-id** (Path): 프로젝트를 추가할 조직 ID (16자)\n- **projectName** (Body): 프로젝트 이름 (최대 40자, 필수)\n- **description** (Body): 프로젝트 설명 (최대 100자, 선택)\n\n### 예상 응답\n- **Status Code**: 200\n- **isSuccessful**: true\n- **resultCode**: 0\n- **project**: 생성된 프로젝트 정보"
+					},
+					"response": [
+						{
+							"id": "444735-bafc21f7-2bfe-4f23-b949-d7d85c1496d6",
+							"name": "성공 응답",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-nhn-authorization",
+										"value": "Bearer {{token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"projectName\": \"Test Project\",\n  \"description\": \"테스트용 프로젝트입니다.\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/v1/organizations/{{org-id}}/projects",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"v1",
+										"organizations",
+										"{{org-id}}",
+										"projects"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"responseTime": null,
+							"body": "{\n  \"header\": {\n    \"isSuccessful\": true,\n    \"resultCode\": 0,\n    \"resultMessage\": \"SUCCESS\"\n  },\n  \"project\": {\n    \"regDateTime\": \"2025-06-13T10:30:00.000+00:00\",\n    \"description\": \"테스트용 프로젝트입니다.\",\n    \"projectName\": \"Test Project\",\n    \"projectId\": \"ABCD1234\",\n    \"orgId\": \"1234567890123456\",\n    \"ownerId\": \"user-uuid-1234\",\n    \"projectStatusCode\": \"STABLE\"\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "프로젝트 추가 - 빈 이름 검증",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 400 Bad Request 응답 확인",
+									"pm.test(\"Status code is 400 for empty project name\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"// 에러 응답 구조 확인",
+									"pm.test(\"Error response structure is correct\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson).to.have.property('header');",
+									"    pm.expect(responseJson.header.isSuccessful).to.be.false;",
+									"    pm.expect(responseJson.header.resultCode).to.not.equal(0);",
+									"    pm.expect(responseJson.header.resultMessage).to.not.be.empty;",
+									"});",
+									"",
+									"// 에러 메시지 확인",
+									"pm.test(\"Error message mentions project name\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.header.resultMessage.toLowerCase()).to.include('project');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"id": "444735-dc18970c-4cf0-486b-bc02-ecd1e8de2a84",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-nhn-authorization",
+								"type": "text",
+								"value": "Bearer {{token}}",
+								"description": "사용자가 발급받은 Bearer 타입 토큰"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"projectName\": \"\",\n  \"description\": \"빈 프로젝트명으로 요청하는 유효성 검증 테스트\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/organizations/{{org-id}}/projects",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"organizations",
+								"{{org-id}}",
+								"projects"
+							]
+						},
+						"description": "## 프로젝트 추가 - 빈 이름 검증\n\n프로젝트 이름이 빈 값일 때의 유효성 검증 테스트입니다.\n\n### 테스트 목적\n- 필수 필드 검증이 올바르게 작동하는지 확인\n- 적절한 오류 메시지가 반환되는지 확인\n\n### 예상 응답\n- **Status Code**: 400 Bad Request\n- **isSuccessful**: false\n- **resultCode**: 0이 아닌 값\n- **resultMessage**: 오류 설명"
+					},
+					"response": []
+				},
+				{
+					"name": "프로젝트 추가 - 긴 이름 검증",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 400 Bad Request 응답 확인",
+									"pm.test(\"Status code is 400 for project name exceeding 40 characters\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"// 에러 응답 확인",
+									"pm.test(\"Error response for long project name\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.header.isSuccessful).to.be.false;",
+									"    pm.expect(responseJson.header.resultCode).to.not.equal(0);",
+									"});",
+									"",
+									"// 에러 메시지에 길이 관련 내용 포함 확인",
+									"pm.test(\"Error message indicates length limit\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    const message = responseJson.header.resultMessage.toLowerCase();",
+									"    const hasLengthInfo = message.includes('40') || message.includes('길이') || message.includes('length') || message.includes('size');",
+									"    pm.expect(hasLengthInfo).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"id": "444735-547b38de-14de-4b65-9288-a5e14ca379d7",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-nhn-authorization",
+								"type": "text",
+								"value": "Bearer {{token}}",
+								"description": "사용자가 발급받은 Bearer 타입 토큰"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"projectName\": \"이 프로젝트 이름은 40자를 초과하는 매우 긴 이름입니다. 유효성 검증을 위한 테스트입니다. 추가 문자들\",\n  \"description\": \"40자 초과 프로젝트명 유효성 검증 테스트\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/organizations/{{org-id}}/projects",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"organizations",
+								"{{org-id}}",
+								"projects"
+							]
+						},
+						"description": "## 프로젝트 추가 - 긴 이름 검증\n\n프로젝트 이름이 40자를 초과할 때의 유효성 검증 테스트입니다.\n\n### 테스트 목적\n- 최대 길이 제한이 올바르게 적용되는지 확인\n- 길이 초과 시 적절한 오류 메시지가 반환되는지 확인\n\n### 테스트 데이터\n- 프로젝트명: 40자를 초과하는 긴 이름\n\n### 예상 응답\n- **Status Code**: 400 Bad Request\n- **isSuccessful**: false\n- **resultCode**: 0이 아닌 값"
+					},
+					"response": []
+				},
+				{
+					"name": "프로젝트 추가 - 필수 필드 누락",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 400 Bad Request 응답 확인",
+									"pm.test(\"Status code is 400 for missing required field\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"// 에러 응답 확인",
+									"pm.test(\"Error response for missing projectName\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.header.isSuccessful).to.be.false;",
+									"    pm.expect(responseJson.header.resultCode).to.not.equal(0);",
+									"});",
+									"",
+									"// 에러 메시지에 projectName 관련 내용 포함 확인",
+									"pm.test(\"Error message mentions projectName field\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    const message = responseJson.header.resultMessage.toLowerCase();",
+									"    const hasProjectNameInfo = message.includes('projectname') || message.includes('프로젝트') || message.includes('이름') || message.includes('required');",
+									"    pm.expect(hasProjectNameInfo).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"id": "444735-5b3008e0-5d74-4c7c-9a5f-bc8ed1c54336",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-nhn-authorization",
+								"type": "text",
+								"value": "Bearer {{token}}",
+								"description": "사용자가 발급받은 Bearer 타입 토큰"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"프로젝트 이름이 누락된 요청 - 필수 필드 검증 테스트\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/organizations/{{org-id}}/projects",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"organizations",
+								"{{org-id}}",
+								"projects"
+							]
+						},
+						"description": "## 프로젝트 추가 - 필수 필드 누락\n\n필수 필드인 projectName이 누락된 경우의 테스트입니다.\n\n### 테스트 목적\n- 필수 필드 검증이 올바르게 작동하는지 확인\n- projectName 누락 시 적절한 오류 처리가 되는지 확인\n\n### 예상 응답\n- **Status Code**: 400 Bad Request\n- **isSuccessful**: false\n- **resultMessage**: projectName 관련 오류 메시지"
+					},
+					"response": []
+				},
+				{
+					"name": "프로젝트 추가 - 인증 오류",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 403 Forbidden 또는 401 Unauthorized 응답 확인",
+									"pm.test(\"Status code is 401 or 403 for invalid token\", function () {",
+									"    pm.expect([401, 403]).to.include(pm.response.code);",
+									"});",
+									"",
+									"// 에러 응답 구조 확인",
+									"pm.test(\"Error response structure for auth failure\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.header.isSuccessful).to.be.false;",
+									"    pm.expect(responseJson.header.resultCode).to.not.equal(0);",
+									"});",
+									"",
+									"// 권한 관련 에러 메시지 확인",
+									"pm.test(\"Error message indicates authentication issue\", function () {",
+									"    const responseJson = pm.response.json();",
+									"    const message = responseJson.header.resultMessage.toLowerCase();",
+									"    const hasAuthInfo = message.includes('권한') || message.includes('인증') || message.includes('auth') || message.includes('token') || message.includes('forbidden');",
+									"    pm.expect(hasAuthInfo).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"id": "444735-314a5b55-d3b3-4235-bf07-838c74ab6f32",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-nhn-authorization",
+								"type": "text",
+								"value": "Bearer invalid-token-for-testing",
+								"description": "잘못된 토큰으로 인증 오류 테스트"
+							},
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"projectName\": \"Auth Test Project\",\n  \"description\": \"인증 오류 테스트용 프로젝트\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/v1/organizations/{{org-id}}/projects",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"v1",
+								"organizations",
+								"{{org-id}}",
+								"projects"
+							]
+						},
+						"description": "## 프로젝트 추가 - 인증 오류\n\n잘못된 Bearer 토큰으로 인증 오류를 테스트합니다.\n\n### 테스트 목적\n- 인증 실패 시 적절한 오류 처리가 되는지 확인\n- 권한 없는 요청에 대한 보안 검증 확인\n\n### 테스트 데이터\n- 잘못된 Bearer 토큰 사용\n\n### 예상 응답\n- **Status Code**: 401 Unauthorized 또는 403 Forbidden\n- **isSuccessful**: false\n- **resultMessage**: 인증/권한 관련 오류 메시지"
+					},
+					"response": [
+						{
+							"id": "444735-ad4f4a6f-2f65-40b0-9277-c6d7e23aedb1",
+							"name": "권한 없음 응답",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-nhn-authorization",
+										"value": "Bearer invalid-token"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"projectName\": \"Test Project\",\n  \"description\": \"테스트용 프로젝트입니다.\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/v1/organizations/{{org-id}}/projects",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"v1",
+										"organizations",
+										"{{org-id}}",
+										"projects"
+									]
+								}
+							},
+							"status": "Forbidden",
+							"code": 403,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"responseTime": null,
+							"body": "{\n  \"header\": {\n    \"isSuccessful\": false,\n    \"resultCode\": 40003,\n    \"resultMessage\": \"권한이 없습니다.\"\n  }\n}"
+						}
+					]
+				}
+			],
+			"id": "444735-b5c548d8-e3ba-4a00-b273-bbe52784a4ec",
+			"description": "### 프로젝트 관리 API 테스트\n\nNHN Cloud Framework API의 프로젝트 생성, 삭제, 수정 관련 API를 테스트합니다.\n\n#### 포함된 테스트:\n- ✅ 정상적인 프로젝트 생성\n- ❌ 잘못된 입력값 검증\n- 🔒 인증 및 권한 검증\n- 📏 데이터 길이 제한 검증"
+		},
+		{
+			"name": "환경 설정 및 검증",
+			"item": [
+				{
+					"name": "환경 변수 검증",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// 필수 환경 변수 확인",
+									"pm.test(\"Required environment variables are set\", function () {",
+									"    const baseUrl = pm.environment.get('baseUrl');",
+									"    const orgId = pm.environment.get('org-id');",
+									"    const token = pm.environment.get('token');",
+									"    ",
+									"    pm.expect(baseUrl, 'baseUrl is required').to.not.be.undefined;",
+									"    pm.expect(orgId, 'org-id is required').to.not.be.undefined;",
+									"    pm.expect(token, 'token is required').to.not.be.undefined;",
+									"});",
+									"",
+									"// 환경 변수 값 검증",
+									"pm.test(\"Environment variables have valid format\", function () {",
+									"    const baseUrl = pm.environment.get('baseUrl');",
+									"    const orgId = pm.environment.get('org-id');",
+									"    const token = pm.environment.get('token');",
+									"    ",
+									"    // baseUrl 형식 확인",
+									"    pm.expect(baseUrl).to.include('api.nhncloudservice.com');",
+									"    pm.expect(baseUrl).to.match(/^https:\\/\\//);",
+									"    ",
+									"    // 조직 ID 길이 확인",
+									"    pm.expect(orgId).to.have.lengthOf(16);",
+									"    ",
+									"    // 토큰이 비어있지 않은지 확인",
+									"    pm.expect(token).to.not.be.empty;",
+									"    pm.expect(token.length).to.be.above(10);",
+									"});",
+									"",
+									"// 환경 변수 로깅",
+									"console.log('🔧 Environment Variables Check:');",
+									"console.log('├─ Base URL:', pm.environment.get('baseUrl'));",
+									"console.log('├─ Organization ID:', pm.environment.get('org-id')?.substring(0, 4) + '****');",
+									"console.log('├─ Token Set:', pm.environment.get('token') ? '✅ Yes' : '❌ No');",
+									"console.log('└─ Token Length:', pm.environment.get('token')?.length || 0);",
+									"",
+									"// 추가 정보 설정",
+									"pm.environment.set('test_run_timestamp', new Date().toISOString());",
+									"pm.environment.set('test_environment_validated', 'true');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"id": "444735-cd184165-b7ec-45c0-b536-a050dd7cefb1",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://httpbin.org/status/200",
+							"protocol": "https",
+							"host": [
+								"httpbin",
+								"org"
+							],
+							"path": [
+								"status",
+								"200"
+							]
+						},
+						"description": "## 환경 변수 검증\n\nAPI 테스트를 위한 환경 변수가 올바르게 설정되었는지 확인하는 테스트입니다.\n\n### 검증 항목\n- ✅ **baseUrl**: NHN Cloud API 엔드포인트\n- ✅ **org-id**: 16자리 조직 ID\n- ✅ **token**: Bearer 인증 토큰\n\n### 참고사항\n- 이 테스트는 실제 NHN Cloud API를 호출하지 않습니다\n- httpbin.org를 사용하여 네트워크 연결만 확인합니다\n- 환경 변수 누락 시 후속 테스트가 실패할 수 있습니다"
+					},
+					"response": []
+				}
+			],
+			"id": "444735-dd61773d-335e-42a0-baa1-78a630756cbf",
+			"description": "### 환경 설정 및 검증\n\nAPI 테스트 실행 전 필요한 환경 변수와 설정을 검증합니다.\n\n#### 포함된 검증:\n- 🔧 환경 변수 설정 확인\n- 🌐 네트워크 연결 테스트\n- 📝 테스트 실행 정보 로깅"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"exec": [
+					"// Collection 레벨 Pre-request Script",
+					"console.log('🚀 Starting NHN Cloud Framework API Test');",
+					"console.log('📅 Test Run Time:', new Date().toISOString());",
+					"",
+					"// API 호출 카운터 초기화",
+					"if (!pm.environment.get('api_call_count')) {",
+					"    pm.environment.set('api_call_count', '0');",
+					"}",
+					"",
+					"// 현재 호출 카운터 증가",
+					"const currentCount = parseInt(pm.environment.get('api_call_count') || '0');",
+					"pm.environment.set('api_call_count', (currentCount + 1).toString());",
+					"",
+					"// 공통 헤더 검증 (개별 요청에서 설정되므로 여기서는 로깅만)",
+					"console.log('📋 Request #' + (currentCount + 1));"
+				],
+				"type": "text/javascript"
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"exec": [
+					"// Collection 레벨 Test Script",
+					"// 공통 테스트 로직",
+					"",
+					"// 응답 시간 로깅",
+					"if (pm.response) {",
+					"    console.log('⏱️ Response Time:', pm.response.responseTime + 'ms');",
+					"    console.log('📦 Response Size:', pm.response.responseSize + ' bytes');",
+					"    console.log('📋 Status:', pm.response.code, pm.response.status);",
+					"}",
+					"",
+					"// 테스트 완료 로깅",
+					"console.log('✅ Individual test completed');"
+				],
+				"type": "text/javascript"
+			}
+		}
+	],
+	"variable": [
+		{
+			"id": "96f2b8e5-f36c-4cba-b45b-1215b826e617",
+			"key": "baseUrl",
+			"value": "https://core.api.nhncloudservice.com",
+			"description": "NHN Cloud Framework API 기본 URL"
+		},
+		{
+			"id": "092a6fda-d27d-4e8c-9410-0b5893eb19d0",
+			"key": "org-id",
+			"value": "1234567890123456",
+			"description": "조직 ID (16자) - 실제 값으로 변경 필요"
+		},
+		{
+			"id": "faf0c17a-2397-4f75-b62c-746e884f3dea",
+			"key": "token",
+			"value": "your-bearer-token-here",
+			"description": "Bearer 인증 토큰 - 실제 값으로 변경 필요"
+		}
+	]
+}
